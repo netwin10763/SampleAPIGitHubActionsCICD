@@ -1,4 +1,4 @@
-name: .NET CI Pipeline
+name: .NET CI/CD to Render
 
 on:
   push:
@@ -13,7 +13,7 @@ on:
       - main
 
 jobs:
-  build:
+  build-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -33,3 +33,14 @@ jobs:
 
     - name: Test
       run: dotnet test --no-build
+
+    - name: Publish
+      run: dotnet publish -c Release -o publish_output
+
+    - name: Deploy to Render
+      env:
+        RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      run: |
+        echo "Triggering deployment on Render..."
+        curl -X POST https://api.render.com/deploy/srv-d5fnbp2li9vc738sh54g \
+        -H "Authorization: Bearer $RENDER_API_KEY"
