@@ -1,6 +1,5 @@
-﻿name: .NET CI/CD to Render
-
-on:
+﻿name: CI/CD
+'on':
   push:
     branches:
       - dev
@@ -11,39 +10,30 @@ on:
       - dev
       - uat
       - main
-
 jobs:
   ci:
     name: Continuous Integration
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-
       - name: Restore dependencies
         run: dotnet restore
-
       - name: Build
         run: dotnet build --no-restore --configuration Release
-
       - name: Test
         run: dotnet test --no-build --verbosity normal
-
       - name: Publish
         run: dotnet publish --configuration Release --output publish_output
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: publish_output
           path: publish_output
-
   cd:
     name: Continuous Deployment
     runs-on: ubuntu-latest
@@ -54,46 +44,48 @@ jobs:
         with:
           name: publish_output
           path: publish_output
-
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
       - name: Deploy to Render
         env:
-          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_API_KEY: '${{ secrets.RENDER_API_KEY }}'
         run: |
           echo "Triggering deployment on Render..."
-          
-          # Trigger deployment
-          DEPLOY_RESPONSE=$(curl -s -X POST https://api.render.com/deploy/srv-d5fnbp2li9vc738sh54g \
+
+          DEPLOY_RESPONSE=$(curl -s -X POST \
+            https://api.render.com/v1/services/srv-d5fnbp2li9vc738sh54g/deploys \
             -H "Authorization: Bearer $RENDER_API_KEY")
-          
+
           DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | jq -r '.id')
-          if [ -z "$DEPLOY_ID" ] || [ "$DEPLOY_ID" == "null" ]; then
-            echo "❌ Failed to trigger deployment."
+
+          if [ -z "$DEPLOY_ID" ] || [ "$DEPLOY_ID" = "null" ]; then
+            echo "❌ Failed to trigger deployment"
+            echo "$DEPLOY_RESPONSE"
             exit 1
           fi
-          
-          echo "Deployment triggered. ID: $DEPLOY_ID"
-          
-          # Poll deployment status
-          STATUS=""
-          MAX_RETRIES=30
-          RETRY_INTERVAL=10
 
-          for i in $(seq 1 $MAX_RETRIES); do
-            STATUS=$(curl -s -H "Authorization: Bearer $RENDER_API_KEY" \
-              https://api.render.com/deploy/srv-d5fnbp2li9vc738sh54g/deploys/$DEPLOY_ID | jq -r '.status')
-            
+          echo "Deployment triggered. ID: $DEPLOY_ID"
+
+          for i in {1..30}; do
+            STATUS=$(curl -s \
+              -H "Authorization: Bearer $RENDER_API_KEY" \
+              https://api.render.com/v1/services/srv-d5fnbp2li9vc738sh54g/deploys/$DEPLOY_ID \
+              | jq -r '.status')
+
             echo "Deployment status: $STATUS"
 
-            if [ "$STATUS" == "succeeded" ]; then
+            if [ "$STATUS" = "live" ]; then
               echo "✅ Deployment completed successfully!"
               exit 0
-            elif [ "$STATUS" == "failed" ]; then
+            fi
+
+            if [ "$STATUS" = "failed" ]; then
               echo "❌ Deployment failed."
               exit 1
             fi
 
-            sleep $RETRY_INTERVAL
+            sleep 10
           done
 
-          echo "❌ Deployment did not complete within expected time."
+          echo "❌ Deployment timed out."
           exit 1
