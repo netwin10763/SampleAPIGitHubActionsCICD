@@ -1,17 +1,35 @@
-# Visual Studio
-.vs/
-
-# Build output
+## Build results
 bin/
 obj/
 
-# Logs
+## User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Visual Studio
+.vs/
+
+## Rider
+.idea/
+
+## OS
+.DS_Store
+Thumbs.db
+
+## Logs
+logs/
 *.log
 
-# User secrets
-secrets.json
-
-# App settings per environment
+## Environment variables
 appsettings.Development.json
 appsettings.UAT.json
 appsettings.Production.json
+
+## Secrets
+secrets.json
+*.pfx
+
+## Publish output
+publish/
