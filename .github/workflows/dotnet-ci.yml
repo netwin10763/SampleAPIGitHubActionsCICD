@@ -44,8 +44,9 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y jq
       - name: Deploy to Render
         run: |
-            echo "Triggering Render deployment..."
-            curl -X POST "$RENDER_DEPLOY_HOOK_URL"
-            echo "✅ Deploy hook triggered"
-            env:
-            RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+         echo "Triggering Render deployment..."
+         CLEAN_URL=$(echo "$RENDER_DEPLOY_HOOK_URL" | tr -d '\r\n')
+         curl -X POST "$CLEAN_URL"
+         echo "✅ Deploy hook triggered"
+        env:
+         RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
