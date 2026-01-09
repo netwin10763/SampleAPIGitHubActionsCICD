@@ -49,8 +49,12 @@ jobs:
           echo "Triggering deployment on Render..."
 
           DEPLOY_RESPONSE=$(curl -s -X POST \
-            https://api.render.com/v1/services/srv-d5fnbp2li9vc738sh54g/deploys \
-            -H "Authorization: Bearer $RENDER_API_KEY")
+              https://api.render.com/v1/services/srv-d5fnbp2li9vc738sh54g/deploys \
+              -H "Authorization: Bearer $RENDER_API_KEY" \
+              -H "Content-Type: application/json")
+
+            echo "Render API response:"
+            echo "$DEPLOY_RESPONSE"
 
           DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | jq -r '.id')
 
