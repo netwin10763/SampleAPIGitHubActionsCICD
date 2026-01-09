@@ -43,50 +43,9 @@ jobs:
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
       - name: Deploy to Render
-        env:
-          RENDER_API_KEY: '${{ secrets.RENDER_API_KEY }}'
         run: |
-          echo "Triggering deployment on Render..."
-
-          DEPLOY_RESPONSE=$(curl -s -X POST \
-              https://api.render.com/v1/services/srv-d5fnbp2li9vc738sh54g/deploys \
-              -H "Authorization: Bearer $RENDER_API_KEY" \
-              -H "Content-Type: application/json" \
-              -d '{}')
-
-            echo "Render API response:"
-            echo "$DEPLOY_RESPONSE"
-
-          DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | jq -r '.id')
-
-          if [ -z "$DEPLOY_ID" ] || [ "$DEPLOY_ID" = "null" ]; then
-            echo "❌ Failed to trigger deployment"
-            echo "$DEPLOY_RESPONSE"
-            exit 1
-          fi
-
-          echo "Deployment triggered. ID: $DEPLOY_ID"
-
-          for i in {1..30}; do
-            STATUS=$(curl -s \
-              -H "Authorization: Bearer $RENDER_API_KEY" \
-              https://api.render.com/v1/services/srv-d5fnbp2li9vc738sh54g/deploys/$DEPLOY_ID \
-              | jq -r '.status')
-
-            echo "Deployment status: $STATUS"
-
-            if [ "$STATUS" = "live" ]; then
-              echo "✅ Deployment completed successfully!"
-              exit 0
-            fi
-
-            if [ "$STATUS" = "failed" ]; then
-              echo "❌ Deployment failed."
-              exit 1
-            fi
-
-            sleep 10
-          done
-
-          echo "❌ Deployment timed out."
-          exit 1
+            echo "Triggering Render deployment..."
+            curl -X POST "$RENDER_DEPLOY_HOOK_URL"
+            echo "✅ Deploy hook triggered"
+            env:
+            RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
